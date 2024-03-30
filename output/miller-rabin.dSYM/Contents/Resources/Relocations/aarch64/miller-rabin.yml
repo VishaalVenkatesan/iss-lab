@@ -1,0 +1,15 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/vishaal/Developer/iss-lab/output/miller-rabin'
+relocations:
+  - { offsetInCU: 0x26, offset: 0x26, size: 0x8, addend: 0x0, symName: __Z7isprimeyi, symObjAddr: 0x0, symBinAddr: 0x100003A78, symSize: 0x25C }
+  - { offsetInCU: 0x4D, offset: 0x4D, size: 0x8, addend: 0x0, symName: __ZL9rand_func, symObjAddr: 0x4C0, symBinAddr: 0x100008000, symSize: 0x0 }
+  - { offsetInCU: 0x77, offset: 0x77, size: 0x8, addend: 0x0, symName: __ZL8rand_max, symObjAddr: 0x4C8, symBinAddr: 0x100008008, symSize: 0x0 }
+  - { offsetInCU: 0x90, offset: 0x90, size: 0x8, addend: 0x0, symName: __ZL9randcalls, symObjAddr: 0x1290, symBinAddr: 0x100008010, symSize: 0x0 }
+  - { offsetInCU: 0xB6, offset: 0xB6, size: 0x8, addend: 0x0, symName: __Z7isprimeyi, symObjAddr: 0x0, symBinAddr: 0x100003A78, symSize: 0x25C }
+  - { offsetInCU: 0x199, offset: 0x199, size: 0x8, addend: 0x0, symName: __ZL12rand_betweenyy, symObjAddr: 0x25C, symBinAddr: 0x100003CD4, symSize: 0x94 }
+  - { offsetInCU: 0x1E1, offset: 0x1E1, size: 0x8, addend: 0x0, symName: __ZL7pow_modyyy, symObjAddr: 0x2F0, symBinAddr: 0x100003D68, symSize: 0xA8 }
+  - { offsetInCU: 0x237, offset: 0x237, size: 0x8, addend: 0x0, symName: __Z7setrandPFivEi, symObjAddr: 0x398, symBinAddr: 0x100003E10, symSize: 0x64 }
+  - { offsetInCU: 0x26D, offset: 0x26D, size: 0x8, addend: 0x0, symName: __Z6myrandv, symObjAddr: 0x3FC, symBinAddr: 0x100003E74, symSize: 0x24 }
+  - { offsetInCU: 0x28A, offset: 0x28A, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x420, symBinAddr: 0x100003E98, symSize: 0x98 }
+...
