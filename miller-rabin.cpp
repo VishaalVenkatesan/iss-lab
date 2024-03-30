@@ -1,200 +1,82 @@
-/*
- * The Miller-Rabin primality test
- *
- * Written by Christian Stigen Larsen, 2012-01-10
- * http://csl.sublevel3.org
- *
- * Distributed under the modified BSD license
- *
- * NOTE:  I implemented this probabilistic algorithm purely as a recreational
- *        challenge.  The code has big room for improvements, but it does work
- *        as advertised.
- */
+#include <iostream>
+#include <cstdlib> // rand
+using namespace std;
+using u64 = uint64_t;
+using u128 = __uint128_t;
 
-#include <stdlib.h> // rand
-#include <stdint.h> // uint64_t
-#include "miller-rabin.h"
-#include <stdio.h>
-#include <time.h>
-
-/*
- * Which PRNG function to use; libc rand() by default
- */
-static int (*rand_func)(void) = rand;
-
-/*
- * Maximum number that rand_func can return.
- */
-static int rand_max = RAND_MAX;
-
-/*
- * Fast calculation of `a^x mod n´ by using right-to-left
- * binary modular exponentiation.
- *
- * This algorithm is taken from Bruce Schneier's book
- * APPLIED CRYPTOGRAPHY.
- *
- * See http://en.wikipedia.org/wiki/Modular_exponentiation
- */
-static uint64_t pow_mod(uint64_t a, uint64_t x, uint64_t n)
+u64 modular_exponentiation(u64 base, u64 exponent, u64 modulus)
 {
-    /*
-     * Note that this code is sensitive to overflowing for testing
-     * of large prime numbers.  The `a*r´ and `a*a´ operations can
-     * overflow.  One easy way of solving this is to use 128-bit
-     * precision for calculating a*b % n, since the mod operator
-     * should always get us back to 64bits again.
-     *
-     * You can either use GCC's built-in __int128_t or use
-     *
-     * typedef unsigned int uint128_t __attribute__((mode(TI)));
-     *
-     * to create a 128-bit datatype.
-     */
-
-    uint64_t r = 1;
-
-    while (x)
+    u64 result = 1;
+    base %= modulus; // Update base if it is more than or equal to modulus
+    while (exponent)
     {
-        if ((x & 1) == 1)
-            // r = (__int128_t)a*r % n; // Slow
-            r = a * r % n;
-
-        x >>= 1;
-        // a = (__int128_t)a*a % n; // SLow
-        a = a * a % n;
+        // If exponent is odd, multiply base with result
+        if (exponent & 1)
+            result = (u128)result * base % modulus;
+        // exponent must be even now, so we can halve it
+        base = (u128)base * base % modulus;
+        exponent >>= 1; // equivalent to exponent = exponent / 2;
     }
-
-    return r;
+    return result;
 }
 
-/*
- * Return an integer between a and b.
- *
- * Note that we use rand() here, meaning that all its pathological cases
- * will apply here as well --- i.e., it's slow and not very random --- but
- * should suffice.
- *
- */
-static uint64_t rand_between(uint64_t a, uint64_t b)
+// Function to check if n is composite (not prime)
+bool check_composite(u64 n, u64 witness, u64 d, int s)
 {
-    // Assume rand_func() is 32 bits
-    uint64_t r = (static_cast<uint64_t>(rand_func()) << 32) | rand_func();
-    return a + (uint64_t)((double)(b - a + 1) * r / (UINT64_MAX + 1.0));
-}
-
-/*
- * The Miller-Rabin probabilistic primality test.
- *
- * Returns true if ``n´´ is PROBABLY prime, false if it's composite.
- * The parameter ``k´´ is the accuracy.
- *
- * The running time should be somewhere around O(k log_3 n).
- *
- */
-bool isprime(uint64_t n, int k)
-{
-    // Must have ODD n greater than THREE
-    if (n == 2 || n == 3)
-        return true;
-    if (n <= 1 || !(n & 1))
+    u64 x = modular_exponentiation(witness, d, n);
+    // If x is 1 or n-1, n is probably prime
+    if (x == 1 || x == n - 1)
         return false;
-
-    // Write n-1 as d*2^s by factoring powers of 2 from n-1
-    int s = 0;
-    for (uint64_t m = n - 1; !(m & 1); ++s, m >>= 1)
-        ; // loop
-
-    uint64_t d = (n - 1) / (1 << s);
-
-    for (int i = 0; i < k; ++i)
+    // Repeat the test s times
+    for (int r = 1; r < s; r++)
     {
-        uint64_t a = rand_between(2, n - 2);
-        uint64_t x = pow_mod(a, d, n);
-
-        if (x == 1 || x == n - 1)
-            continue;
-
-        for (int r = 1; r <= s - 1; ++r)
-        {
-            x = pow_mod(x, 2, n);
-            if (x == 1)
-                return false;
-            if (x == n - 1)
-                goto LOOP;
-        }
-
-        return false;
-    LOOP:
-        continue;
+        x = (u128)x * x % n;
+        // If x becomes n-1, n is probably prime
+        if (x == n - 1)
+            return false;
     }
-
-    // n is *probably* prime
+    // If we reach this point, n is composite
     return true;
 }
 
-/*
- * Set which rand function to use.
- *
- * If passed a NULL parameter, it will revert back to the default libc
- * rand().
- */
-void setrand(int (*pf)(void), const int rmax)
+// Function to perform the Miller-Rabin primality test
+bool MillerRabinPrimalityTest(u64 n, int iterations = 5)
 {
-    if (pf != NULL)
+    // If n is less than 4, it is prime if it is 2 or 3
+    if (n < 4)
+        return n == 2 || n == 3;
+
+    // Write (n - 1) as 2^s * d
+    int s = 0;
+    u64 d = n - 1;
+    while ((d & 1) == 0)
     {
-        rand_func = pf;
-        rand_max = rmax;
+        d >>= 1;
+        s++;
     }
-    else
+
+    // Witness loop
+    for (int i = 0; i < iterations; i++)
     {
-        rand_func = rand;
-        rand_max = RAND_MAX;
+        u64 witness = 2 + rand() % (n - 3);
+        if (check_composite(n, witness, d, s))
+            return false; // n is definitely composite
     }
-}
-
-/*
- * Return the number of primes less than or equal to n, by virtue of brute
- * force.  There are much faster ways of computing this number, but we'll
- * use it to test the primality function.
- *
- */
-static int pi(int n)
-{
-    int r = 0, m = 2;
-
-    while (m < n)
-        if (isprime(m++))
-            ++r;
-
-    return r;
-}
-
-/*
- * Demonstration on how to use other PRNG functions than rand().
- */
-static uint64_t randcalls = 0;
-int myrand()
-{
-    ++randcalls;
-    return rand();
+    return true; // n is probably prime
 }
 
 int main()
 {
-    srand(time(0));
-    setrand(myrand, RAND_MAX);
-
-    uint64_t number = 1482; // The number you want to check for primality
-    int accuracy = 10;      // The number of iterations for the Miller-Rabin test
-
-    if (isprime(number, accuracy))
+    u64 number = 17374823743289074;
+    // u64 number = 52;
+    bool isPrime = MillerRabinPrimalityTest(number);
+    if (isPrime)
     {
-        printf("%llu is probably prime.\n", number);
+        cout << number << " is prime." << endl;
     }
     else
     {
-        printf("%llu is composite.\n", number);
+        cout << number << " is not prime." << endl;
     }
     return 0;
 }
